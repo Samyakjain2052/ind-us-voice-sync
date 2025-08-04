@@ -91,11 +91,19 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
   }, [onTranscription]);
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
+    if (mediaRecorderRef.current && isRecording) {
+      if (mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
       setIsRecording(false);
+      
+      // Clean up immediately
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
     }
-  }, []);
+  }, [isRecording]);
 
   return (
     <div className="flex flex-col items-center space-y-6">
