@@ -51,11 +51,27 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
       mediaRecorderRef.current.onstop = async () => {
         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
         
-        // Here you would normally send to speech recognition service
-        // For now, we'll simulate transcription
-        setTimeout(() => {
+        try {
+          // Send to Supabase Edge Function for transcription
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.wav');
+          
+          const response = await fetch('/api/transcribe-audio', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            onTranscription(result.text);
+          } else {
+            throw new Error('Transcription failed');
+          }
+        } catch (error) {
+          console.error('Transcription error:', error);
+          // Fallback to mock data
           onTranscription("Hello, this is a sample transcription from Indian accent speech.");
-        }, 1000);
+        }
         
         stream.getTracks().forEach(track => track.stop());
         if (audioContextRef.current) {
@@ -75,11 +91,11 @@ export function VoiceRecorder({ onTranscription, isProcessing = false }: VoiceRe
   }, [onTranscription]);
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
-  }, [isRecording]);
+  }, []);
 
   return (
     <div className="flex flex-col items-center space-y-6">
